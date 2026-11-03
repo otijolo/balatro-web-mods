@@ -6,14 +6,14 @@ from pathlib import Path
 import tomllib
 import zipfile
 
-parser = argparse.ArgumentParser(description='Prepara um perfil r2modman para o Balatro Web.')
-parser.add_argument('--perfil', type=Path, default=Path(os.environ.get('APPDATA', '.'))/'r2modmanPlus-local/Balatro/profiles/Default')
-parser.add_argument('--saida', type=Path, required=True)
+parser = argparse.ArgumentParser(description='Export an r2modman profile for Balatro Web.')
+parser.add_argument('--profile', '--perfil', dest='perfil', metavar='PATH', type=Path, default=Path(os.environ.get('APPDATA', '.'))/'r2modmanPlus-local/Balatro/profiles/Default')
+parser.add_argument('--output', '--saida', dest='saida', metavar='ZIP', type=Path, required=True)
 args = parser.parse_args()
 mods = args.perfil/'mods'
 dump = mods/'lovely/dump'
 if not (dump/'main.lua').is_file():
-    raise SystemExit('Não há dump do Lovely. Abra e feche o jogo modificado no r2modman primeiro.')
+    raise SystemExit('No Lovely dump found. Launch and close the modded game through r2modman first.')
 manifest = {'format':'balatro-web-profile-1', 'mods':[], 'modules':[], 'loadNow':[], 'shaderPatches':[]}
 folders = []
 blacklist = set((mods/'lovely/blacklist.txt').read_text(encoding='utf-8-sig').splitlines()) if (mods/'lovely/blacklist.txt').is_file() else set()
@@ -59,5 +59,5 @@ with zipfile.ZipFile(args.saida,'w',zipfile.ZIP_DEFLATED,compresslevel=1) as arc
     for file in dump.rglob('*'):
         if file.is_file() and not file.name.endswith('.json'):
             archive.write(file,'dump/'+file.relative_to(dump).as_posix())
-print(f'Perfil preparado: {args.saida} ({args.saida.stat().st_size/1048576:.1f} MB)')
-print('Este ZIP inclui dumps do seu jogo. Use localmente; não publique nem envie ao GitHub.')
+print(f'Profile exported: {args.saida} ({args.saida.stat().st_size/1048576:.1f} MB)')
+print('This ZIP includes game dumps. Use it locally; do not publish it or upload it to GitHub.')

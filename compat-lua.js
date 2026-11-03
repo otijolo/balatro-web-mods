@@ -3,7 +3,7 @@
   "use strict";
 
   function fail(path, message) {
-    throw new Error("Adaptação web interrompida em " + path + ": " + message);
+    throw new Error("Web adaptation stopped in " + path + ": " + message);
   }
 
   function count(source, expression) {
@@ -72,12 +72,12 @@
     const guard = /if SMODS\.check_looping_context\(([_a-zA-Z.]+)\) then\s*goto skip\s*end/g;
     if (count(source, guard) !== 4 || count(source, /::skip::/g) !== 4 ||
         count(source, /goto continue/g) !== 1 || count(source, /::continue::/g) !== 1) {
-      fail(path, "versão de calculate_card_areas desconhecida; não é seguro remover seus saltos");
+      fail(path, "unknown calculate_card_areas version; its jumps cannot be safely removed");
     }
     source = source.replace(guard, "if not SMODS.check_looping_context($1) then");
     source = source.replace(/::skip::/g, "end -- web: end of non-looping card guard");
     const branch = /goto continue\s*end(?=\s*if not args or not args\.has_area then context\.cardarea = area end)/;
-    if (!branch.test(source)) fail(path, "ramificação de área de cartas diferente da esperada");
+    if (!branch.test(source)) fail(path, "unexpected card area branch");
     source = source.replace(branch, "else -- web: ordinary card-area path");
     source = source.replace("::continue::", "end -- web: end of special/ordinary card-area paths");
     report.push({ path, adapter: "steamodded-card-area-loops", count: 5 });
@@ -89,7 +89,7 @@
     const loop = /(for k, v in pairs\(self\.P_CARDS\) do)([\s\S]*?)::continue::/;
     const match = source.match(loop);
     if (!match || count(match[2], /goto continue/g) !== 2 || /\bgoto\s+(?!continue\b)/.test(match[2])) {
-      fail(path, "versão de criação do baralho desconhecida");
+      fail(path, "unknown deck creation version");
     }
     // A function return has the same effect as this loop's forward continue,
     // including when it appears inside the nested rank/suit exclusion loop.
@@ -106,7 +106,7 @@
     const guard = /if G\.in_delete_run then goto skip_game_actions_during_remove end/;
     if (count(source, /goto skip_game_actions_during_remove/g) !== 1 ||
         count(source, /::skip_game_actions_during_remove::/g) !== 1 || !guard.test(source)) {
-      fail(path, "versão de Card:remove desconhecida");
+      fail(path, "unknown Card:remove version");
     }
     source = source.replace(guard, "if not G.in_delete_run then -- web: only run game actions outside deletion");
     source = source.replace("::skip_game_actions_during_remove::", "end -- web: end of game actions");
@@ -118,7 +118,7 @@
     if (!source.includes("struct TalismanOmega") || !source.includes("ffi.metatype(TalismanOmega")) return source;
     const header = /local ffi = require\(["']ffi["']\)\s*local R = require\(["']big-num\.constants["']\)\s*ffi\.cdef\[\[\s*struct TalismanOmega\s*\{\s*double asize;\s*double number;\s*int8_t sign;\s*bool _nan;\s*bool _inf;\s*\};\s*\]\]\s*local TalismanOmega = ffi\.typeof\(["']struct TalismanOmega["']\)\s*local TalismanOmega_sizeof = assert\(ffi\.sizeof\(["']struct TalismanOmega["']\)\)/;
     if (!header.test(source) || count(source, /ffi\.copy\(n, self, TalismanOmega_sizeof\)/g) !== 1) {
-      fail(path, "estrutura OmegaNum desconhecida; não é seguro substituir a implementação FFI");
+      fail(path, "unknown OmegaNum structure; the FFI implementation cannot be safely replaced");
     }
     source = source.replace(header, 'local R = require("big-num.constants")\n' +
       'local function TalismanOmega()\n' +
@@ -136,7 +136,7 @@
   function adaptAmuletMounts(path, source, report) {
     if (!source.includes("PHYSFS_mount") || !source.includes("_mod_dir_amulet")) return source;
     const mounts = /local ffi = require\(["']ffi["']\)\s*ffi\.cdef\[\[int PHYSFS_mount\(const char\* dir, const char\* mountPoint, int appendToPath\)\]\]\s*local tinymount = [^\r\n]+\s*local talisman_path = _mod_dir_amulet\s*assert\(tinymount\(talisman_path \..*?\r?\nassert\(tinymount\(talisman_path \.[^\r\n]+/;
-    if (!mounts.test(source)) fail(path, "montagem de diretórios do Amulet desconhecida");
+    if (!mounts.test(source)) fail(path, "unknown Amulet directory mounting code");
     source = source.replace(mounts,
       "-- web: talisman/ and big-num/ are copied into the game archive by the builder");
     report.push({ path, adapter: "amulet-archive-directories", count: 1 });

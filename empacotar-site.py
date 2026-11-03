@@ -11,5 +11,5 @@ for name in files:
     destination.parent.mkdir(parents=True,exist_ok=True)
     shutil.copy2(source,destination)
 unexpected=[p.relative_to(target).as_posix() for p in target.rglob('*') if p.is_file() and p.relative_to(target).as_posix() not in files]
-if unexpected: raise SystemExit('Arquivos inesperados na pasta de publicação: '+', '.join(unexpected))
-print(f'{len(files)} arquivos públicos preparados em {target}')
+if unexpected: raise SystemExit('Unexpected files in the deployment folder: '+', '.join(unexpected))
+print(f'{len(files)} public files prepared in {target}')

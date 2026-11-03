@@ -18,7 +18,7 @@ function nfs.setWorkingDirectory(p)
 end
 function nfs.getWorkingDirectory() return cwd end
 function nfs.read(p,...)
- if p=='data' then local resolved=path((...)); if not love.filesystem.getInfo(resolved) then print('WEB: arquivo de áudio ausente: '..resolved); return nil,'Missing sound: '..resolved end; return love.filesystem.newFileData(resolved) end
+ if p=='data' then local resolved=path((...)); if not love.filesystem.getInfo(resolved) then print('WEB: missing audio file: '..resolved); return nil,'Missing sound: '..resolved end; return love.filesystem.newFileData(resolved) end
  local resolved = path(p)
  if not love.filesystem.getInfo(resolved) then return nil,'File does not exist: '..resolved end
  return love.filesystem.read(resolved,...)
@@ -77,7 +77,7 @@ return {
  get_var = function(k) return vars[k] end,
  set_var = function(k,v) vars[k]=tostring(v) end,
  remove_var = function(k) local v=vars[k]; vars[k]=nil; return v end,
- reload_patches = function() return false, 'Recompile o perfil para alterar os patches no navegador.' end,
+ reload_patches = function() return false, 'Rebuild the profile to change browser patches.' end,
  apply_patches = shader
 }`;
 
@@ -128,9 +128,9 @@ end
 package.preload['nativefs'] = function() return assert(love.filesystem.load('nativefs.lua'))() end
 package.preload['SMODS.nativefs'] = function() return require('nativefs') end
 package.preload['socket'] = function()
- return {tcp=function() return {settimeout=function()end,connect=function()return nil,'Browser: TCP indisponível'end,close=function()end} end}
+ return {tcp=function() return {settimeout=function()end,connect=function()return nil,'Browser: TCP unavailable'end,close=function()end} end}
 end
-package.preload['https'] = function() return {request=function()return nil,'HTTP nativo indisponível nesta versão web'end} end
+package.preload['https'] = function() return {request=function()return nil,'Native HTTP unavailable in this web version'end} end
 package.preload['SMODS.https'] = package.preload['https']
 package.preload['luajit-curl'] = package.preload['https']
 -- LuaJIT numeric comparisons must retain their behavior after cdata becomes tables.
@@ -165,8 +165,8 @@ love.graphics.newShader=function(...)
  return shader
 end
 -- Never execute native processes through a web build.
-os.execute = function() return nil,'Processos nativos indisponíveis no navegador' end
-io.popen = function() return nil,'Processos nativos indisponíveis no navegador' end
+os.execute = function() return nil,'Native processes unavailable in the browser' end
+io.popen = function() return nil,'Native processes unavailable in the browser' end
 ${preload}
 ${loadNow}
 `;

@@ -55,7 +55,7 @@ function fixture(){
   await promise;assert.deepEqual(s.created,['cache']);s.db.onversionchange();assert.equal(s.closed,1);
  }
  {
-  const s=fixture();const promise=s.context.openGameDB();const rejection=assert.rejects(promise,/outras abas/);
+  const s=fixture();const promise=s.context.openGameDB();const rejection=assert.rejects(promise,/other tabs/);
   s.open.onblocked();await rejection;await flush();assert.equal(s.closed,1,'late open must close after blocked rejection');
  }
  {

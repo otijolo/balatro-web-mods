@@ -14,10 +14,10 @@ function openGameDB() {
             if (blocked) db.close();
             else resolve(db);
         };
-        request.onerror = () => reject(request.error || new Error("Não foi possível abrir o armazenamento local."));
+        request.onerror = () => reject(request.error || new Error("Unable to open local storage."));
         request.onblocked = () => {
             blocked = true;
-            reject(new Error("Feche as outras abas deste site para atualizar o armazenamento local."));
+            reject(new Error("Close other tabs of this site to update local storage."));
         };
     });
 }
@@ -37,13 +37,13 @@ async function cacheTransaction(mode, operation) {
             tx = db.transaction("cache", mode);
             tx.oncomplete = () => finish(failure);
             tx.onerror = () => {
-                failure = failure || tx.error || new Error("Erro no armazenamento local.");
+                failure = failure || tx.error || new Error("Local storage error.");
             };
-            tx.onabort = () => finish(failure || tx.error || new Error("A operação de armazenamento foi cancelada."));
+            tx.onabort = () => finish(failure || tx.error || new Error("The storage operation was canceled."));
             const request = operation(tx.objectStore("cache"));
             request.onsuccess = () => { result = request.result; };
             // Request success alone does not guarantee that a write commits.
-            request.onerror = () => { failure = request.error || new Error("Falha ao acessar a versão salva."); };
+            request.onerror = () => { failure = request.error || new Error("Failed to access the saved version."); };
         } catch (error) {
             finish(error);
             if (tx) {

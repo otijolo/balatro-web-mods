@@ -12,7 +12,7 @@
     for (let i = 0; i < bytes.length - 3; i++) {
       if (bytes[i] === 80 && bytes[i + 1] === 75 && bytes[i + 2] === 3 && bytes[i + 3] === 4) { offset = i; break; }
     }
-    if (offset < 0) throw new Error('O arquivo não contém um ZIP de jogo válido. Escolha Balatro.exe ou um arquivo .love.');
+    if (offset < 0) throw new Error('The file does not contain a valid game ZIP. Choose Balatro.exe or a .love file.');
     return jszip().loadAsync(bytes.subarray(offset), {checkCRC32: true});
   }
 
@@ -22,7 +22,7 @@
     let size = 0;
     for (const [name, entry] of Object.entries(zip.files)) {
       const path = normalize(entry.unsafeOriginalName || name);
-      if (unsafePath(path)) throw new Error('Caminho inválido no pacote de mods: ' + path);
+      if (unsafePath(path)) throw new Error('Invalid path in mod package: ' + path);
       if (!entry.dir) {
         const bytes = await entry.async('uint8array');
         size += bytes.length;
@@ -30,10 +30,10 @@
         result.set(path, bytes);
       }
     }
-    if (!result.has('profile.json')) throw new Error('Escolha o ZIP de perfil criado pelo preparar-perfil.py incluído neste projeto.');
+    if (!result.has('profile.json')) throw new Error('Choose the profile ZIP created by preparar-perfil.py included in this project.');
     const manifest = JSON.parse(decoder.decode(result.get('profile.json')));
-    if (manifest.format !== 'balatro-web-profile-1') throw new Error('Formato de perfil não reconhecido.');
-    if (!result.has('dump/main.lua')) throw new Error('O perfil não contém o dump/main.lua do Lovely. Inicie o jogo modificado no PC antes de preparar o perfil.');
+    if (manifest.format !== 'balatro-web-profile-1') throw new Error('Unrecognized profile format.');
+    if (!result.has('dump/main.lua')) throw new Error('The profile does not contain Lovely dump/main.lua. Launch the modded game on your PC before exporting the profile.');
     return { files:result, manifest };
   }
 
@@ -43,7 +43,7 @@
     const targets = new Map();
     function walk(node) {
       if (!node || typeof node !== 'object') return;
-      if (node.type==='GotoStatement' || node.type==='LabelStatement') throw new Error('Salto goto ainda não adaptado para o navegador. Esta versão do mod precisa de uma adaptação específica.');
+      if (node.type==='GotoStatement' || node.type==='LabelStatement') throw new Error('A goto statement has not been adapted for the browser. This mod version needs a specific compatibility patch.');
       if (node.type === 'BinaryExpression' && ['<','>','<=','>=','==','~='].includes(node.operator)) {
         const list = targets.get(node.range[0]) || []; list.push(node); targets.set(node.range[0], list);
       }
@@ -67,13 +67,13 @@
   }
 
   async function build(gameFile, profile, onProgress = () => {}) {
-    onProgress('Lendo sua cópia do Balatro…', 5);
+    onProgress('Reading your copy of Balatro…', 5);
     const game = await unpack(gameFile);
-    if (!game.file('main.lua') || !game.file('globals.lua')) throw new Error('Este arquivo não parece ser uma cópia do Balatro.');
+    if (!game.file('main.lua') || !game.file('globals.lua')) throw new Error('This file does not appear to be a copy of Balatro.');
     let manifest = {mods:[], modules:[], loadNow:[]};
     if (profile) {
       manifest = profile.manifest;
-      onProgress('Importando mods e o dump do Lovely…', 15);
+      onProgress('Importing mods and the Lovely dump…', 15);
       for (const [path, bytes] of profile.files) {
         if (path.startsWith('mods/')) game.file('Mods/' + path.slice(5), bytes);
         if (path.startsWith('dump/') && !path.endsWith('.json')) game.file(path.slice(5), bytes);
@@ -82,7 +82,7 @@
         let source = profile.files.get('mods/' + module.folder + '/' + module.source);
         const dumped = 'dump/lovely/' + module.name.replaceAll('.', '/') + '/' + module.source;
         source = profile.files.get(dumped) || source;
-        if (!source) throw new Error('Módulo ausente: ' + module.name);
+        if (!source) throw new Error('Missing module: ' + module.name);
         game.file('web_modules/' + module.name.replaceAll('.', '/') + '.lua', source);
       }
       // Patched files loaded through SMODS.NFS.read must replace their mod source too.
@@ -152,17 +152,17 @@
       // Only patched/mod source needs cdata compatibility. Engine shaders are handled separately.
       if (profile && !['web_compat.lua','web_patches.lua','bit.lua','lovely.lua','nativefs.lua'].includes(file.name)) {
         try { source = rewriteComparisons(source); }
-        catch (err) { throw new Error('Lua incompatível em ' + file.name + ': ' + err.message); }
+        catch (err) { throw new Error('Incompatible Lua in ' + file.name + ': ' + err.message); }
       }
       game.file(file.name, source);
       n++;
-      if (n % 40 === 0) { onProgress('Adaptando Lua (' + n + '/' + luaFiles.length + ')…', 25 + 55 * n/luaFiles.length); await new Promise(resolve => setTimeout(resolve, 0)); }
+      if (n % 40 === 0) { onProgress('Adapting Lua (' + n + '/' + luaFiles.length + ')…', 25 + 55 * n/luaFiles.length); await new Promise(resolve => setTimeout(resolve, 0)); }
     }
     game.file('main.lua', 'require "web_patches"\nrequire "web_compat"\n' + await game.file('main.lua').async('string'));
     game.file('web_patched','true');
-    onProgress('Montando a versão local…', 85);
+    onProgress('Building the local version…', 85);
     const bytes = await game.generateAsync({type:'uint8array', compression:'DEFLATE', compressionOptions:{level:1}});
-    onProgress('Pronto para iniciar.', 100);
+    onProgress('Ready to start.', 100);
     return new Blob([bytes], {type:'application/zip'});
   }
   root.WebModBuilder = {build, readProfile, rewriteComparisons};
