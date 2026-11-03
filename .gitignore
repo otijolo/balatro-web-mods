@@ -1,0 +1,13 @@
+# Never publish game archives, native executables, profile exports, or saves.
+*.exe
+*.dll
+*.love
+*.zip
+__pycache__/
+perfil-local/
+private/
+work/
+Mods/
+dump/
+game-dump/
+_site/
