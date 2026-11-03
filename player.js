@@ -1,7 +1,7 @@
 'use strict';
 const state=document.getElementById('state'),output=document.getElementById('log'),canvas=document.getElementById('canvas');
 const lines=[];const version=new URLSearchParams(location.search).get('version')||'meus-mods';
-function log(...args){const message=args.map(String).join(' ');lines.push(message);if(lines.length>500)lines.shift();output.textContent=lines.join('\n');output.scrollTop=output.scrollHeight;console.log(message);if(/crashed|WEB LUA ERROR|RUNTIME:|ERRO JS/.test(message)){state.textContent='O jogo encontrou um erro. Veja o diagnóstico.';document.getElementById('diagnostics').open=true}}
+function log(...args){const message=args.map(String).join(' ');lines.push(message);if(lines.length>500)lines.shift();output.textContent=lines.join('\n');output.scrollTop=output.scrollHeight;console.log(message);if(/crashed|WEB LUA ERROR|ERRO JS/.test(message)){state.textContent='O jogo encontrou um erro. Veja o diagnóstico.';document.getElementById('diagnostics').open=true}}
 window.alert=message=>log('RUNTIME:',message);window.onerror=(message,url,line,column,error)=>log('ERRO JS',message,error?.stack||'');
 document.getElementById('fullscreen').onclick=()=>canvas.requestFullscreen().catch(e=>log(e.message));
 document.getElementById('download-log').onclick=()=>{const link=document.createElement('a');link.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/plain'}));link.download='balatro-diagnostico.txt';link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000)};
