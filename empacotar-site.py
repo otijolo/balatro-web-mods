@@ -4,7 +4,7 @@ import shutil
 root=Path(__file__).resolve().parent
 target=root/'_site'
 target.mkdir(exist_ok=True)
-files=['index.html','site.css','site.js','player.html','player.js','cache.js','patches.js','compat-lua.js','runtime-compat.js','mod-builder.js','license.txt','lib/jszip.min.js','lib/luaparse.js','lib/luaparse.LICENSE','run/11.5/love.min.js','run/11.5/love.wasm']
+files=['gato-misil.gif','index.html','site.css','site.js','player.html','player.js','cache.js','patches.js','compat-lua.js','runtime-compat.js','mod-builder.js','license.txt','lib/jszip.min.js','lib/luaparse.js','lib/luaparse.LICENSE','run/11.5/love.min.js','run/11.5/love.wasm']
 for name in files:
     source=root/name
     destination=target/name
