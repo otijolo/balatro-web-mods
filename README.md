@@ -41,6 +41,7 @@ O adaptador foi desenvolvido para os arquivos locais de Balatro **1.0.1o**, Love
 - O coringa de espaço livre no disco do Omegatro fica fora do sorteio, pois o navegador não acessa PowerShell. HTTP nativo e integrações Steam não estão disponíveis.
 - O pacote local do Omegatro referencia `labubu.ogg`, ausente nessa instalação. Esse efeito sonoro fica silencioso, com aviso no diagnóstico.
 - Saves são separados por nome de versão e endereço do site. Limpar dados do navegador remove as versões e os saves locais. Saves da Steam não são importados automaticamente.
+- O progresso é sincronizado a cada 10 segundos. Use **Salvar progresso** antes de fechar a aba para confirmar a gravação mais recente.
 - O gerador aleatório web pode produzir resultados diferentes dos da versão nativa, inclusive com a mesma seed.
 - Mudar mods durante o jogo e recarregar patches do Lovely exige reconstruir a versão.
 
