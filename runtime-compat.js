@@ -103,12 +103,6 @@ table.insert(package.loaders, 2, function(name)
  return '\\n\\tno module in browser filesystem: '..name
 end)
 local image = love.graphics.newImage
-local setMode=love.window.setMode
-love.window.setMode=function(w,h,flags)
- flags=flags or {}; flags.fullscreen=false
- return setMode(w,h,flags)
-end
-love.window.setFullscreen=function() return false end
 -- The upstream wrapper expects a config table even when the caller omits it.
 love.graphics.newImage = function(p, options) return image(p,options or {}) end
 local sounds = {}
