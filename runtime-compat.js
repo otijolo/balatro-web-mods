@@ -135,6 +135,9 @@ package.preload['SMODS.https'] = package.preload['https']
 package.preload['luajit-curl'] = package.preload['https']
 -- LuaJIT numeric comparisons must retain their behavior after cdata becomes tables.
 function __web_compare(op,a,b)
+ if type(a)~='table' and type(a)~='cdata' and type(b)~='table' and type(b)~='cdata' then
+  if op=='<' then return a<b elseif op=='>' then return a>b elseif op=='<=' then return a<=b elseif op=='>=' then return a>=b elseif op=='==' then return a==b else return a~=b end
+ end
  local big = rawget(_G,'Big')
  local isa = big and big.is and big.is(a)
  local isb = big and big.is and big.is(b)
@@ -148,22 +151,6 @@ function __web_compare(op,a,b)
 end
 local newFont = love.graphics.newFont
 love.graphics.newFont = function(...) return newFont(...) end
-local compileShader=love.graphics.newShader
-love.graphics.newShader=function(...)
- local shader=compileShader(...)
- local mt=getmetatable(shader)
- if not mt._web_send then
-  mt._web_send=true
-  local send=mt.send
-  mt.send=function(self,name,...)
-   local values,n={...},select('#',...)
-   local ok,result=pcall(send,self,name,unpack(values,1,n))
-   if not ok then print('WEB shader send failed: '..tostring(name)..' values='..n..' first='..type(values[1])..' second='..type(values[2])); error(result) end
-   return result
-  end
- end
- return shader
-end
 -- Never execute native processes through a web build.
 os.execute = function() return nil,'Native processes unavailable in the browser' end
 io.popen = function() return nil,'Native processes unavailable in the browser' end
