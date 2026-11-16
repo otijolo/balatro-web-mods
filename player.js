@@ -31,5 +31,34 @@ async function optimizeGame(game){
  zip.file('web_compat.lua',source);
  const packer=zip.file('engine/string_packer.lua');
  if(packer)zip.file('engine/string_packer.lua',WebRuntime.optimizeSaveSource(await packer.async('string')));
+ for(const file of Object.values(zip.files)){
+  if(!file.dir&&file.name.endsWith('.lua')){
+   const text=await file.async('string');
+   if(text.includes('__web_compare(')&&file.name!=='web_compat.lua')zip.file(file.name,WebComparisonOptimizer.optimize(text));
+  }
+ }
+ const main=zip.file('main.lua');
+ if(main){
+  const original=await main.async('string');
+  if(!original.includes('-- web frame timings'))zip.file('main.lua',original+`
+-- web frame timings: CPU callback time, not GPU completion time.
+do
+ local update,draw=love.update,love.draw
+ local now=love.timer.getTime
+ local started,last=now(),now()
+ local frames,updateTime,drawTime,stalls=0,0,0,0
+ if update then love.update=function(dt)
+  local t=now(); if t-last>0.05 then stalls=stalls+1 end; last=t
+  update(dt); updateTime=updateTime+now()-t; frames=frames+1
+  local elapsed=now()-started
+  if elapsed>=10 and frames>0 then
+   print(string.format('PERF: %.1f FPS; update %.2f ms; draw CPU %.2f ms; frames over 50 ms: %d',frames/elapsed,1000*updateTime/frames,1000*drawTime/frames,stalls))
+   started=now(); frames=0; updateTime=0; drawTime=0; stalls=0
+  end
+ end end
+ if draw then love.draw=function(...) local t=now(); draw(...); drawTime=drawTime+now()-t end end
+end
+`);
+ }
  return zip.generateAsync({type:'uint8array',compression:'STORE'});
 }

@@ -42,6 +42,7 @@ jobs:
           node --check compat-lua.js
           node --check cache.js
           node tests/cache.test.cjs
+          node tests/comparison-opt.test.cjs
       - name: Prepare public files only
         run: python3 empacotar-site.py
       - name: Upload artifact
