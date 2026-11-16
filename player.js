@@ -29,5 +29,7 @@ async function optimizeGame(game){
  const shaderEnd=source.indexOf('-- Never execute',shaderStart);
  if(shaderStart>=0&&shaderEnd>shaderStart)source=source.slice(0,shaderStart)+source.slice(shaderEnd);
  zip.file('web_compat.lua',source);
+ const packer=zip.file('engine/string_packer.lua');
+ if(packer)zip.file('engine/string_packer.lua',WebRuntime.optimizeSaveSource(await packer.async('string')));
  return zip.generateAsync({type:'uint8array',compression:'STORE'});
 }

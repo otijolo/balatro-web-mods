@@ -147,6 +147,7 @@
         if (mod.originalPath) source = source.replaceAll(mod.originalPath.replaceAll('\\','/'), 'Mods/' + mod.folder).replaceAll(mod.originalPath.replaceAll('\\','\\\\'), 'Mods/' + mod.folder).replaceAll(mod.originalPath, 'Mods/' + mod.folder);
       }
       source = root.WebLuaCompat.transform(file.name, source);
+      if(file.name==='engine/string_packer.lua')source=root.WebRuntime.optimizeSaveSource(source);
       // Lua 5.1's legacy vararg table named `arg` shadows a parameter with that name.
       if (file.name.endsWith('talisman/break_inf/sanitizer.lua') || file.name.endsWith('talisman/smods/gradients.lua')) source=source.replace(/\barg\b/g,'web_argument');
       // Only patched/mod source needs cdata compatibility. Engine shaders are handled separately.

@@ -158,5 +158,14 @@ ${preload}
 ${loadNow}
 `;
   }
-  root.WebRuntime = {nativefs, lovely, bootstrap};
+  function optimizeSaveSource(source) {
+    const start = 'local ret_str = (recursive and "" or "return ").."{"';
+    const append = 'ret_str = ret_str..i.."="..v..","';
+    const finish = 'return ret_str.."}"';
+    if (![start, append, finish].every(part => source.includes(part))) return source;
+    return source.replace(start, 'local ret_parts = {(recursive and "" or "return ").."{"}')
+      .replace(append, 'ret_parts[#ret_parts+1] = i.."="..v..","')
+      .replace(finish, 'ret_parts[#ret_parts+1] = "}"; return table.concat(ret_parts)');
+  }
+  root.WebRuntime = {nativefs, lovely, bootstrap, optimizeSaveSource};
 })(globalThis);
