@@ -130,7 +130,13 @@ package.preload['SMODS.nativefs'] = function() return require('nativefs') end
 package.preload['socket'] = function()
  return {tcp=function() return {settimeout=function()end,connect=function()return nil,'Browser: TCP unavailable'end,close=function()end} end}
 end
-package.preload['https'] = function() return {request=function()return nil,'Native HTTP unavailable in this web version'end} end
+package.preload['https'] = function()
+ local function unavailable() return nil,'Native HTTP unavailable in this web version' end
+ return {request=unavailable,asyncRequest=function(url,callback)
+  if type(callback)=='function' then callback(0,nil) end
+  return unavailable()
+ end}
+end
 package.preload['SMODS.https'] = package.preload['https']
 package.preload['luajit-curl'] = package.preload['https']
 -- LuaJIT numeric comparisons must retain their behavior after cdata becomes tables.
