@@ -6,6 +6,7 @@ function flushLog(){if(!logDirty)return;output.textContent=lines.join('\n');logD
 setInterval(()=>{if(document.getElementById('diagnostics').open)flushLog()},1000);
 document.getElementById('diagnostics').addEventListener('toggle',flushLog);
 function log(...args){const message=args.map(String).join(' ');if(message.startsWith('LONG DT @'))return;lines.push(message);if(lines.length>500)lines.shift();logDirty=true;if(/crashed|WEB LUA ERROR|ERRO JS/.test(message)){state.textContent='The game encountered an error. Check the diagnostics.';document.getElementById('diagnostics').open=true;flushLog()}}
+document.addEventListener('visibilitychange',()=>log('PAGE visibility:',document.visibilityState,new Date().toISOString()));
 window.alert=message=>log('RUNTIME:',message);window.onerror=(message,url,line,column,error)=>log('ERRO JS',message,error?.stack||'');
 document.getElementById('save').onclick=async()=>{try{await Module.syncSaves();state.textContent='Progress saved in this browser.'}catch(e){state.textContent='Unable to save progress.';log(e.stack||e)}};
 document.getElementById('fullscreen').onclick=()=>canvas.requestFullscreen().catch(e=>log(e.message));
@@ -42,6 +43,12 @@ async function optimizeGame(game){
    if(text.includes('__web_compare(')&&file.name!=='web_compat.lua')zip.file(file.name,WebComparisonOptimizer.optimize(text));
   }
  }
+ const dynamicText=zip.file('engine/text.lua');
+ if(dynamicText){
+  const text=await dynamicText.async('string');
+  const call='love.graphics.newText(self.font.FONT, c)';
+  if(text.includes(call))zip.file('engine/text.lua',WebRuntime.glyphCacheLua+'\n'+text.replaceAll(call,'web_cached_glyph(self.font.FONT, c)'));
+ }
  const main=zip.file('main.lua');
  if(main){
   const original=await main.async('string');
@@ -50,12 +57,42 @@ async function optimizeGame(game){
 local function install_web_frame_timings()
  local update,draw=love.update,love.draw
  local now=love.timer.getTime
+ local stages={}
+ local function pack(...) return {n=select('#',...),...} end
+ local function measure(owner,key,label)
+  if not owner or type(owner[key])~='function' then return end
+  local original=owner[key]
+  local stat={name=label,time=0,calls=0}; stages[#stages+1]=stat
+  owner[key]=function(...)
+   local t=now(); local result=pack(original(...))
+   stat.time=stat.time+now()-t; stat.calls=stat.calls+1
+   return unpack(result,1,result.n)
+  end
+ end
+ measure(_G,'nuGC','garbage collection')
+ measure(_G,'copy_card','copy card')
+ measure(_G,'create_UIBox_run_setup','run setup')
+ measure(UIBox,'init','UI boxes')
+ measure(DynaText,'init','animated text')
+ measure(Card,'init','cards')
+ measure(Game,'save_progress','save progress')
+ measure(G and G.UIDEF,'view_deck','view deck')
+ measure(G and G.FUNCS,'change_viewed_back','change deck')
+ measure(G and G.FUNCS,'change_stake','change stake')
  local started,last=now(),now()
  local frames,updateTime,drawTime,stalls=0,0,0,0
  local worstFrame,worstUpdate,worstDraw=0,0,0
  if update then love.update=function(dt)
   local t=now(); local gap=t-last; if gap>0.05 then stalls=stalls+1 end; worstFrame=math.max(worstFrame,gap); last=t
+  for _,stat in ipairs(stages) do stat.time=0; stat.calls=0 end
   update(dt); local cost=now()-t; updateTime=updateTime+cost; worstUpdate=math.max(worstUpdate,cost); frames=frames+1
+  if cost>=0.1 then
+   local details={}
+   for _,stat in ipairs(stages) do
+    if stat.calls>0 then details[#details+1]=string.format('%s %.1f ms (%d calls)',stat.name,stat.time*1000,stat.calls) end
+   end
+   print(string.format('PERF slow update: %.1f ms; inclusive stages: ',cost*1000)..table.concat(details,'; '))
+  end
   local elapsed=now()-started
   if elapsed>=10 and frames>0 then
    print(string.format('PERF: %.1f FPS; update %.2f ms; draw CPU %.2f ms; frames over 50 ms: %d',frames/elapsed,1000*updateTime/frames,1000*drawTime/frames,stalls))

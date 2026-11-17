@@ -177,5 +177,24 @@ ${loadNow}
       .replace(append, 'ret_parts[#ret_parts+1] = i.."="..v..","')
       .replace(finish, 'ret_parts[#ret_parts+1] = "}"; return table.concat(ret_parts)');
   }
-  root.WebRuntime = {nativefs, lovely, bootstrap, optimizeSaveSource};
+  // DynaText only draws these single-character Text objects; animation state
+  // stays on each letter record. Never share mutable UI text drawables.
+  const glyphCacheLua = `-- web immutable DynaText glyph cache (bounded per font)
+local web_glyph_fonts=setmetatable({}, {__mode='k'})
+local function web_cached_glyph(font,character)
+ local cache=web_glyph_fonts[font]
+ if not cache then cache={values={},order={},next=1}; web_glyph_fonts[font]=cache end
+ local glyph=cache.values[character]
+ if glyph then return glyph end
+ glyph=love.graphics.newText(font,character)
+ local slot=cache.next
+ local expired=cache.order[slot]
+ if expired then cache.values[expired]=nil end
+ cache.order[slot]=character; cache.values[character]=glyph
+ cache.next=slot%256+1
+ -- Eviction drops only the cache reference; existing letters still own it.
+ return glyph
+end
+`;
+  root.WebRuntime = {nativefs, lovely, bootstrap, optimizeSaveSource, glyphCacheLua};
 })(globalThis);
