@@ -196,5 +196,43 @@ local function web_cached_glyph(font,character)
  return glyph
 end
 `;
-  root.WebRuntime = {nativefs, lovely, bootstrap, optimizeSaveSource, glyphCacheLua};
+  function deferDeckPreviews(source) {
+    // Only the visual-copy block used by the deck viewer, never gameplay copies.
+    return source.replace(/local copy = copy_card\(([^\n]+),\s*nil,\s*_scale\)\s+copy\.greyed = greyed\s+copy\.T\.x = view_deck\.T\.x \+ view_deck\.T\.w\s*\/\s*2\s+copy\.T\.y = view_deck\.T\.y\s+copy:hard_set_T\(\)\s+view_deck:emplace\(copy\)/g,
+      'web_queue_deck_preview($1, view_deck, greyed, _scale)');
+  }
+  const deckPreviewLua = `
+-- web incremental deck preview: keep gameplay copy_card semantics intact.
+local web_preview_queue={}
+local web_preview_head,web_preview_tail=1,0
+function web_queue_deck_preview(card,area,greyed,scale)
+ web_preview_tail=web_preview_tail+1
+ web_preview_queue[web_preview_tail]={card=card,area=area,greyed=greyed,scale=scale}
+end
+function web_fill_deck_previews()
+ local started=love.timer.getTime()
+ local made=0
+ while web_preview_head<=web_preview_tail do
+  local job=web_preview_queue[web_preview_head]
+  web_preview_queue[web_preview_head]=nil
+  web_preview_head=web_preview_head+1
+  if not job.area.REMOVED and not job.area.removed and not job.card.REMOVED and not job.card.removed then
+   local copy=copy_card(job.card,nil,job.scale)
+   copy.greyed=job.greyed
+   copy.T.x=job.area.T.x+job.area.T.w/2
+   copy.T.y=job.area.T.y
+   copy:hard_set_T()
+   job.area:emplace(copy)
+   made=made+1
+  end
+  -- At most two cards or four milliseconds of work per update. A single
+  -- copy cannot be interrupted; the next one waits until the next frame.
+  if made>=2 or love.timer.getTime()-started>=0.004 then break end
+ end
+ if web_preview_head>web_preview_tail then
+  web_preview_queue={}; web_preview_head=1; web_preview_tail=0
+ end
+end
+`;
+  root.WebRuntime = {nativefs, lovely, bootstrap, optimizeSaveSource, glyphCacheLua, deferDeckPreviews, deckPreviewLua};
 })(globalThis);
