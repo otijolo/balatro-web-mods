@@ -40,7 +40,7 @@ async function optimizeGame(game){
  for(const file of Object.values(zip.files)){
   if(!file.dir&&file.name.endsWith('.lua')){
    const text=await file.async('string');
-   if(text.includes('__web_compare(')&&file.name!=='web_compat.lua')zip.file(file.name,WebComparisonOptimizer.optimize(text));
+   if(text.includes('__web_compare(')&&file.name!=='web_compat.lua')zip.file(file.name,WebComparisonOptimizer.optimize(text,{objectMethods:/^(card|cardarea|engine\/(node|moveable|ui|text|sprite|animatedsprite))\.lua$/.test(file.name)}));
   }
  }
  const dynamicText=zip.file('engine/text.lua');
@@ -75,6 +75,13 @@ local function install_web_frame_timings()
  measure(UIBox,'init','UI boxes')
  measure(DynaText,'init','animated text')
  measure(Card,'init','cards')
+ measure(Card,'remove','remove cards')
+ measure(Node,'remove','remove nodes')
+ measure(Card,'set_ability','card ability')
+ measure(Card,'set_edition','card edition')
+ measure(Card,'should_hide_front','card front')
+ measure(_G,'check_for_unlock','unlock checks')
+ measure(Cryptid,'misprintize_tbl','Cryptid misprint')
  measure(Game,'save_progress','save progress')
  measure(G and G.UIDEF,'view_deck','view deck')
  measure(G and G.FUNCS,'change_viewed_back','change deck')

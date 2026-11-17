@@ -8,3 +8,17 @@ for(const input of ['__web_compare("==",(a or b),nil)','__web_compare("~=",f(),"
 for(const input of ['__web_compare("==",score,0)','__web_compare("<",score,5)','__web_compare("==",a,b)','__web_compare("<=",x,"a")'])assert.equal(optimize(input),input);
 assert.equal(optimize('__web_compare("==",(a or b),nil)'), '((a or b) == (nil))');
 console.log('PASS comparison optimizer: precedence, nested calls, idempotence and numeric guards');
+const method='function Node:remove() return __web_compare("==",v,self) end';
+const objectOptimize=s=>context.WebComparisonOptimizer.optimize(s,{objectMethods:true});
+assert(!objectOptimize(method).includes('__web_compare'));
+assert(context.WebComparisonOptimizer.optimize(method).includes('__web_compare'));
+for(const source of [
+ 'function Big:eq() return __web_compare("==",v,self) end',
+ 'function Node:remove() local self=1; return __web_compare("==",v,self) end',
+ 'function Node:remove() self=1; return __web_compare("==",v,self) end',
+ 'function Node:remove() return function(self) return __web_compare("==",v,self) end end',
+ 'function Node:remove() return __web_compare("<",v,self) end',
+ 'function Node:remove() return __web_compare("==",self.score,0) end'
+])assert(objectOptimize(source).includes('__web_compare'),source);
+assert.equal(objectOptimize(objectOptimize(method)),objectOptimize(method));
+console.log('PASS object comparisons: opt-in, method scope, shadowing, numeric fields and ordering guards');
