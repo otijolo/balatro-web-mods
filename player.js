@@ -52,16 +52,18 @@ local function install_web_frame_timings()
  local now=love.timer.getTime
  local started,last=now(),now()
  local frames,updateTime,drawTime,stalls=0,0,0,0
+ local worstFrame,worstUpdate,worstDraw=0,0,0
  if update then love.update=function(dt)
-  local t=now(); if t-last>0.05 then stalls=stalls+1 end; last=t
-  update(dt); updateTime=updateTime+now()-t; frames=frames+1
+  local t=now(); local gap=t-last; if gap>0.05 then stalls=stalls+1 end; worstFrame=math.max(worstFrame,gap); last=t
+  update(dt); local cost=now()-t; updateTime=updateTime+cost; worstUpdate=math.max(worstUpdate,cost); frames=frames+1
   local elapsed=now()-started
   if elapsed>=10 and frames>0 then
    print(string.format('PERF: %.1f FPS; update %.2f ms; draw CPU %.2f ms; frames over 50 ms: %d',frames/elapsed,1000*updateTime/frames,1000*drawTime/frames,stalls))
-   started=now(); frames=0; updateTime=0; drawTime=0; stalls=0
+   print(string.format('PERF peaks: frame %.1f ms; update %.1f ms; draw CPU %.1f ms; Lua memory %.1f MB',worstFrame*1000,worstUpdate*1000,worstDraw*1000,collectgarbage('count')/1024))
+   started=now(); frames=0; updateTime=0; drawTime=0; stalls=0; worstFrame=0; worstUpdate=0; worstDraw=0
   end
  end end
- if draw then love.draw=function(...) local t=now(); draw(...); drawTime=drawTime+now()-t end end
+ if draw then love.draw=function(...) local t=now(); draw(...); local cost=now()-t; drawTime=drawTime+cost; worstDraw=math.max(worstDraw,cost) end end
  print('PERF: frame timing enabled after mod initialization')
 end
 local original_load=love.load

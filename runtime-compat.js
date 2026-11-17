@@ -141,13 +141,17 @@ package.preload['SMODS.https'] = package.preload['https']
 package.preload['luajit-curl'] = package.preload['https']
 -- LuaJIT numeric comparisons must retain their behavior after cdata becomes tables.
 function __web_compare(op,a,b)
- if type(a)~='table' and type(a)~='cdata' and type(b)~='table' and type(b)~='cdata' then
+ local ta=type(a)
+ if ta~='table' and ta~='cdata' then
+  local tb=type(b)
+  if tb~='table' and tb~='cdata' then
   if op=='<' then return a<b elseif op=='>' then return a>b elseif op=='<=' then return a<=b elseif op=='>=' then return a>=b elseif op=='==' then return a==b else return a~=b end
+  end
  end
- local big = rawget(_G,'Big')
- local isa = big and big.is and big.is(a)
- local isb = big and big.is and big.is(b)
- if (isa and (isb or type(b)=='number')) or (isb and type(a)=='number') then
+ local big=rawget(_G,'Big')
+ local isa=big and big.is and big.is(a)
+ local isb=big and big.is and big.is(b)
+ if (isa and (isb or type(b)=='number')) or (isb and ta=='number') then
   -- Table identity bypasses __eq, which would incorrectly make Big.NaN equal
   -- to itself. Compare numerically and keep NaN unordered, as LuaJIT does.
   local comparison=big.compareTo(a,b)
