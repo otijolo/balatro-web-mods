@@ -1,5 +1,6 @@
 'use strict';
 const state=document.getElementById('state'),output=document.getElementById('log'),canvas=document.getElementById('canvas');
+const PLAYER_BUILD='20261117.4';
 const lines=[];const version=new URLSearchParams(location.search).get('version')||'my-mods';
 let logDirty=false;
 function flushLog(){if(!logDirty)return;output.textContent=lines.join('\n');logDirty=false}
@@ -7,6 +8,8 @@ setInterval(()=>{if(document.getElementById('diagnostics').open)flushLog()},1000
 document.getElementById('diagnostics').addEventListener('toggle',flushLog);
 function log(...args){const message=args.map(String).join(' ');if(message.startsWith('LONG DT @'))return;lines.push(message);if(lines.length>500)lines.shift();logDirty=true;if(/crashed|WEB LUA ERROR|ERRO JS/.test(message)){state.textContent='The game encountered an error. Check the diagnostics.';document.getElementById('diagnostics').open=true;flushLog()}}
 document.addEventListener('visibilitychange',()=>log('PAGE visibility:',document.visibilityState,new Date().toISOString()));
+log('PLAYER build:',PLAYER_BUILD);
+document.querySelector('#diagnostics summary').textContent='Session diagnostics · build '+PLAYER_BUILD;
 window.alert=message=>log('RUNTIME:',message);window.onerror=(message,url,line,column,error)=>log('ERRO JS',message,error?.stack||'');
 document.getElementById('save').onclick=async()=>{try{await Module.syncSaves();state.textContent='Progress saved in this browser.'}catch(e){state.textContent='Unable to save progress.';log(e.stack||e)}};
 document.getElementById('fullscreen').onclick=()=>canvas.requestFullscreen().catch(e=>log(e.message));
@@ -40,7 +43,11 @@ async function optimizeGame(game){
  for(const file of Object.values(zip.files)){
   if(!file.dir&&file.name.endsWith('.lua')){
    const text=await file.async('string');
-   if(text.includes('__web_compare(')&&file.name!=='web_compat.lua')zip.file(file.name,WebComparisonOptimizer.optimize(text,{objectMethods:/^(card|cardarea|engine\/(node|moveable|ui|text|sprite|animatedsprite))\.lua$/.test(file.name)}));
+   if(text.includes('__web_compare(')&&file.name!=='web_compat.lua'){
+    const optimized=WebComparisonOptimizer.optimize(text,{objectMethods:/^(card|cardarea|engine\/(node|moveable|ui|text|sprite|animatedsprite))\.lua$/.test(file.name)});
+    zip.file(file.name,optimized);
+    if(file.name==='engine/node.lua')log('PATCH: node comparisons removed:',text.split('__web_compare(').length-optimized.split('__web_compare(').length);
+   }
   }
  }
  const dynamicText=zip.file('engine/text.lua');
@@ -52,7 +59,10 @@ async function optimizeGame(game){
  const main=zip.file('main.lua');
  if(main){
   const original=await main.async('string');
-  if(!original.includes('-- web frame timings'))zip.file('main.lua',original+`
+  if(original.includes('-- web frame timings'))log('PATCH warning: imported main.lua already contains frame timings; keeping existing instrumentation.');
+  if(!original.includes('-- web frame timings')){
+   log('PATCH: installing menu diagnostics '+PLAYER_BUILD);
+   zip.file('main.lua',original+`
 -- web frame timings: CPU callback time, not GPU completion time.
 local function install_web_frame_timings()
  local update,draw=love.update,love.draw
@@ -108,6 +118,7 @@ local function install_web_frame_timings()
   end
  end end
  if draw then love.draw=function(...) local t=now(); draw(...); local cost=now()-t; drawTime=drawTime+cost; worstDraw=math.max(worstDraw,cost) end end
+ print('PERF build: 20261117.4; detailed card and removal probes enabled')
  print('PERF: frame timing enabled after mod initialization')
 end
 local original_load=love.load
@@ -116,6 +127,7 @@ love.load=function(...)
  install_web_frame_timings()
 end
 `);
+  }
  }
  return zip.generateAsync({type:'uint8array',compression:'STORE'});
 }
